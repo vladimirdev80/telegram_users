@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>USERS_GOLD Mini App</title>
-    <!-- Подключаем SDK Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Библиотека SheetJS для генерации Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
@@ -104,11 +102,13 @@
             padding: 8px;
             position: sticky;
             top: 0;
+            white-space: nowrap;
         }
 
         td {
             padding: 8px;
             border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
         }
 
         tr:nth-child(even) {
@@ -128,6 +128,13 @@
             <input type="number" id="inputId" placeholder="например, 318" value="318">
         </div>
         <div class="form-group">
+            <label>Программа</label>
+            <select id="selectProgram">
+                <option value="GOLD">GOLD</option>
+                <option value="GSM2">GSM2</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label>Фамилия</label>
             <input type="text" id="inputLastName" placeholder="Фамилия" value="Racu">
         </div>
@@ -136,11 +143,8 @@
             <input type="text" id="inputFirstName" placeholder="Имя" value="Ion">
         </div>
         <div class="form-group">
-            <label>Программа</label>
-            <select id="selectProgram">
-                <option value="GOLD">GOLD</option>
-                <option value="GSM2">GSM2</option>
-            </select>
+            <label>Функция</label>
+            <input type="text" id="inputFunction" placeholder="Функция / Должность" value="Оператор">
         </div>
 
         <button class="btn btn-add" id="btnAdd">Добавить в таблицу</button>
@@ -160,17 +164,17 @@
                         <th>ПРОГРАММА</th>
                         <th>ФАМИЛИЯ</th>
                         <th>ИМЯ</th>
+                        <th>ФУНКЦИЯ</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Записи добавляются динамически -->
+                    <!-- Записи будут попадать сюда -->
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) {
             tg.ready();
@@ -184,15 +188,15 @@
         const btnSend = document.getElementById('btnSend');
         const tableBody = document.getElementById('tableBody');
 
-        // Добавление записи в список
         btnAdd.addEventListener('click', () => {
             const mag = document.getElementById('inputMag').value;
             const id = document.getElementById('inputId').value;
+            const program = document.getElementById('selectProgram').value;
             const lastName = document.getElementById('inputLastName').value;
             const firstName = document.getElementById('inputFirstName').value;
-            const program = document.getElementById('selectProgram').value;
+            const func = document.getElementById('inputFunction').value;
 
-            if (!mag || !id || !lastName || !firstName) {
+            if (!mag || !id || !lastName || !firstName || !func) {
                 alert("Заполните все поля формы!");
                 return;
             }
@@ -203,14 +207,14 @@
                 id: id,
                 program: program,
                 lastName: lastName,
-                firstName: firstName
+                firstName: firstName,
+                func: func
             };
 
             usersData.push(newUser);
             renderTable();
         });
 
-        // Отрисовка таблицы
         function renderTable() {
             tableBody.innerHTML = '';
             usersData.forEach((u, index) => {
@@ -222,31 +226,28 @@
                     <td>${u.program}</td>
                     <td>${u.lastName}</td>
                     <td>${u.firstName}</td>
+                    <td>${u.func}</td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        // Генерация Excel файла в формат Base64
         function generateExcelBase64() {
             const wsData = [
-                ["№", "MAG", "ID", "ПРОГРАММА", "ФАМИЛИЯ", "ИМЯ"]
+                ["№", "MAG", "ID", "ПРОГРАММА", "ФАМИЛИЯ", "ИМЯ", "ФУНКЦИЯ"]
             ];
 
             usersData.forEach((u, index) => {
-                wsData.push([index + 1, u.mag, u.id, u.program, u.lastName, u.firstName]);
+                wsData.push([index + 1, u.mag, u.id, u.program, u.lastName, u.firstName, u.func]);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Users");
 
-            // Экспорт файла в формате base64
-            const base64String = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-            return base64String;
+            return XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
         }
 
-        // Отправка запроса на бэкенд
         btnSend.addEventListener('click', async () => {
             if (usersData.length === 0) {
                 alert("Сначала добавьте хотя бы одного пользователя!");
@@ -254,7 +255,7 @@
             }
 
             btnSend.disabled = true;
-            btnSend.innerText = "Отправка в Telegram...";
+            btnSend.innerText = "Отправка...";
 
             try {
                 const base64Data = generateExcelBase64();
