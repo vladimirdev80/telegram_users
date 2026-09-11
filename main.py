@@ -30,14 +30,20 @@ async def root():
 
 @app.post("/api/upload")
 async def upload_excel(
-    file: UploadFile = File(...),
-    initData: str = Form(...)
+    file: UploadFile = File(None),
+    initData: str = Form(None)
 ):
-    logging.info(f"Получен файл: {file.filename}")
-    logging.info(f"Длина initData: {len(initData)}")
+    logging.info("--- Новый входящий POST запрос ---")
     
+    if not file:
+        logging.error("Файл не был передан в запросе")
+        raise HTTPException(status_code=400, detail="Файл отсутствует")
+        
+    logging.info(f"Имя полученного файла: {file.filename}")
+
     if not initData:
-        raise HTTPException(status_code=400, detail="initData is empty")
+        logging.error("Поле initData отсутствует или пустое")
+        raise HTTPException(status_code=400, detail="initData отсутствует")
 
     user_id = None
 
@@ -45,24 +51,25 @@ async def upload_excel(
     try:
         data = safe_parse_webapp_init_data(token=BOT_TOKEN, raw_init_data=initData)
         user_id = data.user.id
-        logging.info(f"Валидация прошла успешно. ID пользователя: {user_id}")
+        logging.info(f"Успешная валидация Telegram. ID: {user_id}")
     except Exception as parse_error:
-        logging.warning(f"Официальная валидация не прошла: {parse_error}. Парсим raw initData...")
+        logging.warning(f"Официальная валидация сбойнула: {parse_error}. Пробуем извлечь user_id из raw данных...")
         
-        # 2. Резервный разбор initData (если валидация не прошла, достаем user.id напрямую)
+        # 2. Резервный разбор initData
         try:
             parsed_query = parse_qs(initData)
             if 'user' in parsed_query:
                 user_json = json.loads(parsed_query['user'][0])
                 user_id = user_json.get('id')
-                logging.info(f"Извлечен ID из raw user: {user_id}")
+                logging.info(f"Извлечен user_id из сырого json: {user_id}")
         except Exception as fallback_error:
-            logging.error(f"Не удалось извлечь user_id: {fallback_error}")
+            logging.error(f"Сбой резервного разбора: {fallback_error}")
 
     if not user_id:
-        raise HTTPException(status_code=400, detail="Could not determine user_id from initData")
+        logging.error("Не удалось определить user_id ни одним из способов")
+        raise HTTPException(status_code=400, detail="Не удалось определить ID пользователя")
 
-    # 3. Отправка файла пользователю
+    # 3. Отправка документа пользователю
     try:
         file_content = await file.read()
         document = BufferedInputFile(file_content, filename=file.filename)
@@ -70,9 +77,10 @@ async def upload_excel(
         await bot.send_document(
             chat_id=user_id,
             document=document,
-            caption=f"✅ Файл `{file.filename}` успешно сформирован!"
+            caption=f"✅ Файл с пользователями `{file.filename}` успешно сгенерирован!"
         )
+        logging.info(f"Файл успешно отправлен пользователю {user_id}")
         return {"status": "ok"}
     except Exception as send_error:
-        logging.error(f"Ошибка отправки через Telegram Bot: {send_error}")
+        logging.error(f"Ошибка отправки файла ботом: {send_error}")
         raise HTTPException(status_code=500, detail=str(send_error))
