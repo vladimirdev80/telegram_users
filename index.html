@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Добавление пользователей</title>
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Библиотека XLSX -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-theme-bg-color, #f4f4f4);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 15px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .field {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #666);
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 8px;
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            outline: none;
+        }
+
+        input:disabled, select:disabled {
+            background: var(--tg-theme-secondary-bg-color, #e9e9e9);
+            opacity: 0.6;
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--tg-theme-button-color, #1976d2);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            font-weight: 600;
+            margin-top: 5px;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        .user-form {
+            display: none;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--tg-theme-hint-color, #ddd);
+        }
+
+        .password-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .password-row input {
+            flex: 1;
+        }
+
+        .password-row button {
+            width: auto;
+            white-space: nowrap;
+        }
+
+        .description, .login {
+            opacity: 0.8;
+        }
+
+        #saveUserButton {
+            background: #2e7d32;
+            margin-top: 15px;
+        }
+
+        .table-container {
+            display: none;
+            margin-top: 20px;
+            background: var(--tg-theme-secondary-bg-color, #ffffff);
+            padding: 15px;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        .save-excel-button {
+            background: #217346;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        th, td {
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            padding: 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--tg-theme-button-color, #1976d2);
+            color: var(--tg-theme-button-text-color, #fff);
+        }
+
+        .delete-button {
+            background: #d32f2f;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .number-column {
+            text-align: center;
+            width: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Добавление пользователя</h2>
+
+    <div class="field">
+        <label for="mag">MAG</label>
+        <input type="text" id="mag" inputmode="numeric" placeholder="Введите MAG">
+    </div>
+
+    <div class="field">
+        <label for="userId">ID</label>
+        <input type="text" id="userId" inputmode="numeric" placeholder="Введите ID">
+    </div>
+
+    <button type="button" id="addUserButton">Добавить пользователя</button>
+
+    <div class="user-form" id="userForm">
+        <div class="field">
+            <label for="program">ПРОГРАММА</label>
+            <select id="program">
+                <option value="">Выберите программу</option>
+                <option value="GOLD">GOLD</option>
+                <option value="GSM2">GSM2</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="lastName">ФАМИЛИЯ</label>
+            <input type="text" id="lastName" placeholder="Введите фамилию">
+        </div>
+
+        <div class="field">
+            <label for="firstName">ИМЯ</label>
+            <input type="text" id="firstName" placeholder="Введите имя">
+        </div>
+
+        <div class="field">
+            <label for="function">ФУНКЦИЯ</label>
+            <select id="function">
+                <option value="">Выберите функцию</option>
+                <option value="manager">manager</option>
+                <option value="asistent">asistent</option>
+                <option value="operator">operator</option>
+                <option value="receptioner">receptioner</option>
+                <option value="универсальный пользователь">универсальный пользователь</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="description">ОПИСАНИЕ</label>
+            <input type="text" id="description" class="description" readonly maxlength="30" placeholder="Заполнится автоматически">
+        </div>
+
+        <div class="field">
+            <label for="login">ЛОГИН</label>
+            <input type="text" id="login" class="login" readonly placeholder="Заполнится автоматически">
+        </div>
+
+        <div class="field">
+            <label for="password">ПАРОЛЬ</label>
+            <div class="password-row">
+                <input type="text" id="password" readonly placeholder="Пароль">
+                <button type="button" id="generatePassword">Сгенерировать</button>
+            </div>
+        </div>
+
+        <button type="button" id="saveUserButton">Добавить в таблицу</button>
+    </div>
+</div>
+
+<div class="table-container" id="tableContainer">
+    <h2>Список пользователей</h2>
+    <button type="button" id="saveExcelButton" class="save-excel-button">Сохранить в Excel</button>
+    <table>
+        <thead>
+            <tr>
+                <th class="number-column">№</th>
+                <th>MAG</th>
+                <th>ID</th>
+                <th>ПРОГРАММА</th>
+                <th>ФАМИЛИЯ</th>
+                <th>ИМЯ</th>
+                <th>ФУНКЦИЯ</th>
+                <th>ОПИСАНИЕ</th>
+                <th>ПРОФИЛЬ</th>
+                <th>ЛОГИН</th>
+                <th>ПАРОЛЬ</th>
+                <th>ДЕЙСТВИЕ</th>
+            </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    // ==========================================
+    // ИНИЦИАЛИЗА TELEGRAM WEB APP
+    // ==========================================
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+
+    if (tg) {
+        tg.ready();
+        tg.expand(); // Разворачиваем приложение на весь экран
+    }
+
+    // Хранилище
+    let users = [];
+
+    // Элементы
+    const magInput = document.getElementById("mag");
+    const idInput = document.getElementById("userId");
+    const addUserButton = document.getElementById("addUserButton");
+    const userForm = document.getElementById("userForm");
+    const programSelect = document.getElementById("program");
+    const lastNameInput = document.getElementById("lastName");
+    const firstNameInput = document.getElementById("firstName");
+    const functionSelect = document.getElementById("function");
+    const descriptionInput = document.getElementById("description");
+    const loginInput = document.getElementById("login");
+    const passwordInput = document.getElementById("password");
+    const generatePasswordButton = document.getElementById("generatePassword");
+    const saveUserButton = document.getElementById("saveUserButton");
+    const tableContainer = document.getElementById("tableContainer");
+    const usersTableBody = document.getElementById("usersTableBody");
+    const saveExcelButton = document.getElementById("saveExcelButton");
+
+    const receptionerOption = functionSelect.querySelector('option[value="receptioner"]');
+    const universalOption = functionSelect.querySelector('option[value="универсальный пользователь"]');
+
+    // Хелпер для вибрации (Haptic Feedback)
+    function triggerHaptic(type = 'light') {
+        if (tg && tg.HapticFeedback) {
+            if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+            else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+            else tg.HapticFeedback.impactOccurred(type);
+        }
+    }
+
+    // Хелпер для алертов через Telegram API
+    function showAlert(message) {
+        if (tg && tg.showAlert) {
+            tg.showAlert(message);
+        } else {
+            alert(message);
+        }
+    }
+
+    addUserButton.addEventListener("click", function () {
+        if (magInput.value.trim() === "") {
+            showAlert("Введите MAG");
+            magInput.focus();
+            triggerHaptic('error');
+            return;
+        }
+        if (idInput.value.trim() === "") {
+            showAlert("Введите ID");
+            idInput.focus();
+            triggerHaptic('error');
+            return;
+        }
+        userForm.style.display = "block";
+        programSelect.focus();
+        triggerHaptic('light');
+    });
+
+    function updateFunctionOptions() {
+        const program = programSelect.value;
+        if (program === "GOLD") {
+            receptionerOption.disabled = true;
+            universalOption.disabled = true;
+            if (functionSelect.value === "receptioner" || functionSelect.value === "универсальный пользователь") {
+                functionSelect.value = "";
+            }
+        } else {
+            receptionerOption.disabled = false;
+            universalOption.disabled = false;
+        }
+    }
+
+    function updateDescription() {
+        const lastName = lastNameInput.value.trim();
+        const firstName = firstNameInput.value.trim();
+        const userFunction = functionSelect.value;
+        const mag = magInput.value.trim();
+
+        if (!lastName || !firstName || !userFunction || !mag) {
+            descriptionInput.value = "";
+            return;
+        }
+
+        const fullName = lastName + " " + firstName;
+        const suffix = " L-" + mag;
+        let description = fullName + " " + userFunction + suffix;
+
+        if (description.length <= 30) {
+            descriptionInput.value = description;
+            return;
+        }
+
+        const availableFunctionLength = 30 - fullName.length - suffix.length - 1;
+        let shortenedFunction = availableFunctionLength > 0 ? userFunction.slice(0, availableFunctionLength) : "";
+        description = fullName + " " + shortenedFunction + suffix;
+        descriptionInput.value = description.slice(0, 30);
+    }
+
+    function updateGsm2Password() {
+        if (programSelect.value !== "GSM2") return;
+        const lastName = lastNameInput.value.trim();
+        const firstName = firstNameInput.value.trim();
+        passwordInput.value = (lastName.substring(0, 2) + firstName.substring(0, 2)).toLowerCase();
+    }
+
+    function updateLogin() {
+        const lastName = lastNameInput.value.trim();
+        const firstName = firstNameInput.value.trim();
+        const program = programSelect.value;
+        const userFunction = functionSelect.value;
+        const mag = magInput.value.trim();
+
+        if (userFunction === "receptioner") {
+            loginInput.value = "rec" + mag;
+            passwordInput.value = "rec" + mag;
+            generatePasswordButton.disabled = true;
+            return;
+        }
+
+        if (userFunction === "универсальный пользователь") {
+            loginInput.value = "lin" + mag;
+            passwordInput.value = "lin" + mag;
+            generatePasswordButton.disabled = true;
+            return;
+        }
+
+        if (!lastName || !firstName || !program) {
+            loginInput.value = "";
+            return;
+        }
+
+        if (program === "GOLD") {
+            loginInput.value = firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase() + lastName.slice(1);
+            return;
+        }
+
+        if (program === "GSM2") {
+            loginInput.value = (lastName.substring(0, 2) + firstName.substring(0, 2)).toLowerCase();
+        }
+    }
+
+    function updatePassword() {
+        const userFunction = functionSelect.value;
+        const program = programSelect.value;
+        const mag = magInput.value.trim();
+
+        if (userFunction === "receptioner") {
+            passwordInput.value = "rec" + mag;
+            generatePasswordButton.disabled = true;
+            return;
+        }
+
+        if (userFunction === "универсальный пользователь") {
+            passwordInput.value = "lin" + mag;
+            generatePasswordButton.disabled = true;
+            return;
+        }
+
+        if (program === "GSM2") {
+            generatePasswordButton.disabled = true;
+            updateGsm2Password();
+            return;
+        }
+
+        if (program === "GOLD") {
+            generatePasswordButton.disabled = false;
+        }
+    }
+
+    programSelect.addEventListener("change", function () {
+        updateFunctionOptions();
+        updateDescription();
+        updateLogin();
+        updatePassword();
+    });
+
+    [lastNameInput, firstNameInput].forEach(el => {
+        el.addEventListener("input", function () {
+            updateDescription();
+            updateGsm2Password();
+            updateLogin();
+            updatePassword();
+        });
+    });
+
+    [functionSelect, magInput].forEach(el => {
+        el.addEventListener("change", function () {
+            updateDescription();
+            updateLogin();
+            updatePassword();
+        });
+    });
+
+    function generatePassword() {
+        const upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const lowerCase = "abcdefghijklmnopqrstuvwxyz";
+        const numbers = "0123456789";
+        const allCharacters = upperCase + lowerCase + numbers;
+
+        let password = "";
+        password += upperCase[Math.floor(Math.random() * upperCase.length)];
+        password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
+        password += numbers[Math.floor(Math.random() * numbers.length)];
+
+        for (let i = 0; i < 2; i++) {
+            password += allCharacters[Math.floor(Math.random() * allCharacters.length)];
+        }
+
+        password = password.split("").sort(() => Math.random() - 0.5).join("");
+        passwordInput.value = password.substring(0, 5);
+        triggerHaptic('medium');
+    }
+
+    generatePasswordButton.addEventListener("click", function () {
+        if (programSelect.value === "GOLD" && functionSelect.value !== "receptioner" && functionSelect.value !== "универсальный пользователь") {
+            generatePassword();
+        }
+    });
+
+    function getProfile(program) {
+        if (program === "GOLD") return "GSO (1ADM_SHOP) (ADM_SHOP)";
+        if (program === "GSM2") return "GSM (M1_ADM_SH) (M_ADMIN_SHOP)";
+        return "";
+    }
+
+    function validateUserForm() {
+        if (magInput.value.trim() === "") { showAlert("Введите MAG"); return false; }
+        if (idInput.value.trim() === "") { showAlert("Введите ID"); return false; }
+        if (programSelect.value === "") { showAlert("Выберите программу"); return false; }
+        if (lastNameInput.value.trim() === "") { showAlert("Введите фамилию"); return false; }
+        if (firstNameInput.value.trim() === "") { showAlert("Введите имя"); return false; }
+        if (functionSelect.value === "") { showAlert("Выберите функцию"); return false; }
+        if (descriptionInput.value.trim() === "") { showAlert("Не удалось сформировать описание"); return false; }
+        if (loginInput.value.trim() === "") { showAlert("Не удалось сформировать логин"); return false; }
+        if (passwordInput.value.trim() === "" && programSelect.value === "GOLD") {
+            showAlert("Для GOLD необходимо сгенерировать пароль");
+            return false;
+        }
+        return true;
+    }
+
+    saveUserButton.addEventListener("click", function () {
+        if (!validateUserForm()) {
+            triggerHaptic('error');
+            return;
+        }
+
+        const user = {
+            mag: magInput.value.trim(),
+            id: idInput.value.trim(),
+            program: programSelect.value,
+            lastName: lastNameInput.value.trim(),
+            firstName: firstNameInput.value.trim(),
+            userFunction: functionSelect.value,
+            description: descriptionInput.value,
+            profile: getProfile(programSelect.value),
+            login: loginInput.value,
+            password: passwordInput.value
+        };
+
+        users.push(user);
+        sortUsers();
+        tableContainer.style.display = "block";
+        renderTable();
+        clearUserForm();
+        magInput.focus();
+        triggerHaptic('success');
+    });
+
+    function sortUsers() {
+        users.sort((a, b) => a.lastName.localeCompare(b.lastName, "ru", { sensitivity: "base" }));
+    }
+
+    function renderTable() {
+        usersTableBody.innerHTML = "";
+        users.forEach((user, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td class="number-column">${index + 1}</td>
+                <td>${user.mag}</td>
+                <td>${user.id}</td>
+                <td>${user.program}</td>
+                <td>${user.lastName}</td>
+                <td>${user.firstName}</td>
+                <td>${user.userFunction}</td>
+                <td>${user.description}</td>
+                <td>${user.profile}</td>
+                <td>${user.login}</td>
+                <td>${user.password}</td>
+                <td><button type="button" class="delete-button" onclick="deleteUser(${index})">Удалить</button></td>
+            `;
+            usersTableBody.appendChild(row);
+        });
+    }
+
+    window.deleteUser = function(index) {
+        const user = users[index];
+        const confirmDelete = () => {
+            users.splice(index, 1);
+            sortUsers();
+            renderTable();
+            if (users.length === 0) tableContainer.style.display = "none";
+            triggerHaptic('medium');
+        };
+
+        if (tg && tg.showConfirm) {
+            tg.showConfirm(`Удалить пользователя ${user.lastName} ${user.firstName}?`, (confirmed) => {
+                if (confirmed) confirmDelete();
+            });
+        } else {
+            if (confirm(`Удалить пользователя ${user.lastName} ${user.firstName}?`)) confirmDelete();
+        }
+    };
+
+    function clearUserForm() {
+        magInput.value = "";
+        idInput.value = "";
+        programSelect.value = "";
+        lastNameInput.value = "";
+        firstNameInput.value = "";
+        functionSelect.value = "";
+        descriptionInput.value = "";
+        loginInput.value = "";
+        passwordInput.value = "";
+        receptionerOption.disabled = false;
+        universalOption.disabled = false;
+        generatePasswordButton.disabled = false;
+    }
+
+    // ==========================================
+    // СОХРАНЕНИЕ / ОТПРАВКА
+    // ==========================================
+    saveExcelButton.addEventListener("click", function () {
+        if (users.length === 0) {
+            showAlert("Нет пользователей для сохранения");
+            return;
+        }
+
+        const excelData = users.map((user, index) => ({
+            "№": index + 1,
+            "MAG": user.mag,
+            "ID": user.id,
+            "ПРОГРАММА": user.program,
+            "ФАМИЛИЯ": user.lastName,
+            "ИМЯ": user.firstName,
+            "ФУНКЦИЯ": user.userFunction,
+            "ОПИСАНИЕ": user.description,
+            "ПРОФИЛЬ": user.profile,
+            "ЛОГИН": user.login,
+            "ПАРОЛЬ": user.password
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        worksheet["!cols"] = [
+            { wch: 5 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
+            { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 35 },
+            { wch: 35 }, { wch: 20 }, { wch: 15 }
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Пользователи");
+
+        const magForFile = users[0].mag.trim().replace(/[\\/:*?"<>|]/g, "_");
+        const fileName = "users_" + magForFile + ".xlsx";
+
+        // Если открыто внутри Telegram
+        if (tg && tg.initData) {
+            // Генерация бинарного файла Excel
+            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+
+            // Отправляем данные бота на бэкенд
+            const formData = new FormData();
+            formData.append('file', blob, fileName);
+            formData.append('initData', tg.initData);
+
+            // Пример вызова серверного скрипта (замените URL на ваш бэкенд)
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                triggerHaptic('success');
+                tg.close(); // Закрываем Mini App после успешной отправки
+            })
+            .catch(err => {
+                // Если нет сервера, скачиваем локально как файл
+                XLSX.writeFile(workbook, fileName);
+            });
+
+        } else {
+            // Если открыто в обычном браузере
+            XLSX.writeFile(workbook, fileName);
+        }
+    });
+
+    updateFunctionOptions();
+    updatePassword();
+</script>
+</body>
+</html>
