@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-aiogram
+aiogram>=3.0.0
 python-multipart
-pydantic
 requests
