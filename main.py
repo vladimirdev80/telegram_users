@@ -1,15 +1,24 @@
 import io
 import os
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from aiogram import Bot
 from aiogram.types import BufferedInputFile
 from aiogram.utils.web_app import safe_parse_webapp_init_data
 
-# Получаем токен из настроек Render (Environment Variables)
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8918854648:AAHA3xvclAe0-Q51PI-Qf9M9m9NezzHWnmM")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "ВАШ_ТОКЕН")
 
 bot = Bot(token=BOT_TOKEN)
 app = FastAPI()
+
+# Разрешаем запросы с любых доменов (включая GitHub Pages)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
@@ -21,15 +30,12 @@ async def upload_excel(
     initData: str = Form(...)
 ):
     try:
-        # Проверка подписи initData из Telegram WebApp
         data = safe_parse_webapp_init_data(token=BOT_TOKEN, raw_init_data=initData)
         user_id = data.user.id
         
-        # Чтение содержимого файла из формы
         file_content = await file.read()
         document = BufferedInputFile(file_content, filename=file.filename)
         
-        # Отправка Excel-файла прямо в чат пользователю
         await bot.send_document(
             chat_id=user_id,
             document=document,
