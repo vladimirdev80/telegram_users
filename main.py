@@ -25,11 +25,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Схема входящего JSON запроса
 class UploadPayload(BaseModel):
     file_base64: str
     filename: str
-    initData: str
+    initData: str = ""
 
 @app.get("/")
 async def root():
@@ -37,36 +36,32 @@ async def root():
 
 @app.post("/api/upload")
 async def upload_excel(payload: UploadPayload):
-    logging.info(f"--- Получен JSON-запрос для файла: {payload.filename} ---")
+    logging.info(f"--- POST запрос от клиента. Длина initData: {len(payload.initData)} ---")
     
-    if not payload.initData:
-        logging.error("Строка initData пуста")
-        raise HTTPException(status_code=400, detail="initData отсутствует")
-
     user_id = None
 
-    # 1. Попытка официальной валидации Telegram подписи
-    try:
-        data = safe_parse_webapp_init_data(token=BOT_TOKEN, raw_init_data=payload.initData)
-        user_id = data.user.id
-        logging.info(f"Успешная валидация Telegram. ID пользователя: {user_id}")
-    except Exception as parse_error:
-        logging.warning(f"Официальная проверка подписи не прошла: {parse_error}. Пробуем извлечь user_id...")
-        
-        # 2. Резервный разбор initData
+    # 1. Если initData передан — валидируем или парсим
+    if payload.initData:
         try:
-            parsed_query = parse_qs(payload.initData)
-            if 'user' in parsed_query:
-                user_json = json.loads(parsed_query['user'][0])
-                user_id = user_json.get('id')
-                logging.info(f"Извлечен user_id из raw данных: {user_id}")
-        except Exception as fallback_error:
-            logging.error(f"Сбой извлечения user_id: {fallback_error}")
+            data = safe_parse_webapp_init_data(token=BOT_TOKEN, raw_init_data=payload.initData)
+            user_id = data.user.id
+            logging.info(f"Валидация успешна. user_id: {user_id}")
+        except Exception as parse_error:
+            logging.warning(f"Ошибка safe_parse: {parse_error}. Пробуем распарсить raw string...")
+            try:
+                parsed = parse_qs(payload.initData)
+                if 'user' in parsed:
+                    user_id = json.loads(parsed['user'][0]).get('id')
+            except Exception as e:
+                logging.error(f"Не удалось распарсить raw initData: {e}")
 
+    # 2. Если user_id всё ещё не найден (например, открыто вне Telegram)
     if not user_id:
-        raise HTTPException(status_code=400, detail="Не удалось определить ID пользователя")
+        error_msg = "Ошибка: initData пуст или не содержит user_id. Приложение открыто вне Telegram?"
+        logging.error(error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
 
-    # 3. Декодирование файла и отправка пользователю
+    # 3. Декодирование и отправка в бот
     try:
         file_bytes = base64.b64decode(payload.file_base64)
         document = BufferedInputFile(file_bytes, filename=payload.filename)
@@ -74,10 +69,9 @@ async def upload_excel(payload: UploadPayload):
         await bot.send_document(
             chat_id=user_id,
             document=document,
-            caption=f"✅ Файл `{payload.filename}` успешно сформирован!"
+            caption=f"✅ Файл `{payload.filename}` успешно сгенерирован!"
         )
-        logging.info(f"Файл успешно отправлен пользователю {user_id}")
         return {"status": "ok"}
     except Exception as send_error:
-        logging.error(f"Ошибка отправки файла ботом: {send_error}")
+        logging.error(f"Ошибка отправки через Telegram Bot API: {send_error}")
         raise HTTPException(status_code=500, detail=str(send_error))
