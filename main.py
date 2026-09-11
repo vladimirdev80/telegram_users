@@ -6,7 +6,7 @@ from aiogram import Bot
 from aiogram.types import BufferedInputFile
 from aiogram.utils.web_app import safe_parse_webapp_init_data
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "ВАШ_ТОКЕН")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8918854648:AAHA3xvclAe0-Q51PI-Qf9M9m9NezzHWnmM")
 
 bot = Bot(token=BOT_TOKEN)
 app = FastAPI()
