@@ -1,669 +1,295 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Добавление пользователей</title>
-
-    <!-- Telegram WebApp SDK -->
+    <title>USERS_GOLD Mini App</title>
+    <!-- Подключаем SDK Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Библиотека для создания Excel -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
+    <!-- Библиотека SheetJS для генерации Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
     <style>
-        * {
-            box-sizing: border-box;
-            /* Запрет выделения текста на странице */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        /* Разрешаем выделять текст только внутри полей ввода */
-        input, select {
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            -ms-user-select: text;
-            user-select: text;
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --primary-color: #2b78e4;
+            --success-color: #2e7d32;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
+            padding: 12px;
+            box-sizing: border-box;
         }
 
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
-        h2 {
-            margin-top: 0;
-            margin-bottom: 25px;
-        }
-
-        .field {
-            margin-bottom: 15px;
+        .form-group {
+            margin-bottom: 12px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            color: #555;
         }
 
-        input, select, button {
+        input, select {
             width: 100%;
-            box-sizing: border-box;
             padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
         }
 
-        input:disabled, select:disabled {
-            background: #e9e9e9;
-            color: #666;
-        }
-
-        button {
-            cursor: pointer;
-            background: #1976d2;
-            color: white;
+        .btn {
+            width: 100%;
+            padding: 12px;
             border: none;
-            margin-top: 5px;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
         }
 
-        button:hover { background: #125ca5; }
-        button:disabled { background: #aaa; cursor: not-allowed; }
-
-        .user-form {
-            display: none;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
+        .btn-add {
+            background-color: var(--success-color);
+            color: white;
+            margin-top: 8px;
         }
 
-        .password-row {
-            display: flex;
-            gap: 8px;
+        .btn-send {
+            background-color: var(--primary-color);
+            color: white;
+            margin-bottom: 12px;
         }
 
-        .password-row input { flex: 1; }
-        .password-row button { width: auto; white-space: nowrap; }
-
-        .description, .login, .profile { background: #f0f0f0; }
-
-        #saveUserButton {
-            background: #2e7d32;
-            margin-top: 10px;
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
-        #saveUserButton:hover { background: #1b5e20; }
 
         .table-container {
-            display: none;
-            margin-top: 30px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow-x: auto;
+            max-height: 250px;
         }
-
-        .save-excel-button {
-            background: #217346;
-            width: auto;
-            padding: 10px 20px;
-            margin-bottom: 15px;
-        }
-        .save-excel-button:hover { background: #185c37; }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1200px;
-            background: white;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
+            font-size: 13px;
             text-align: left;
-            vertical-align: middle;
         }
 
         th {
-            background: #1976d2;
+            background-color: #1976d2;
             color: white;
-            font-weight: bold;
-            white-space: nowrap;
+            padding: 8px;
+            position: sticky;
+            top: 0;
         }
 
-        tbody tr:nth-child(even) { background: #f7f7f7; }
-        tbody tr:hover { background: #eef5ff; }
-
-        .delete-button {
-            background: #d32f2f;
-            width: auto;
-            padding: 7px 12px;
-            margin: 0;
-        }
-        .delete-button:hover { background: #b71c1c; }
-
-        .number-column {
-            text-align: center;
-            width: 50px;
+        td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        @media (max-width: 700px) {
-            body { padding: 10px; }
-            .container { padding: 18px; }
-            .table-container { padding: 10px; }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
     </style>
 </head>
-
 <body>
 
-<div class="container">
-    <h2>Добавление пользователя</h2>
-
-    <div class="field">
-        <label for="mag">MAG</label>
-        <input type="text" id="mag" inputmode="numeric" placeholder="Введите MAG">
-    </div>
-
-    <div class="field">
-        <label for="userId">ID</label>
-        <input type="text" id="userId" inputmode="numeric" placeholder="Введите ID">
-    </div>
-
-    <button type="button" id="addUserButton">Добавить пользователя</button>
-
-    <div class="user-form" id="userForm">
-        <div class="field">
-            <label for="program">ПРОГРАММА</label>
-            <select id="program">
-                <option value="">Выберите программу</option>
+    <div class="card">
+        <div class="form-group">
+            <label>MAG</label>
+            <input type="number" id="inputMag" placeholder="например, 118" value="118">
+        </div>
+        <div class="form-group">
+            <label>ID</label>
+            <input type="number" id="inputId" placeholder="например, 318" value="318">
+        </div>
+        <div class="form-group">
+            <label>Фамилия</label>
+            <input type="text" id="inputLastName" placeholder="Фамилия" value="Racu">
+        </div>
+        <div class="form-group">
+            <label>Имя</label>
+            <input type="text" id="inputFirstName" placeholder="Имя" value="Ion">
+        </div>
+        <div class="form-group">
+            <label>Программа</label>
+            <select id="selectProgram">
                 <option value="GOLD">GOLD</option>
                 <option value="GSM2">GSM2</option>
             </select>
         </div>
 
-        <div class="field">
-            <label for="lastName">ФАМИЛИЯ</label>
-            <input type="text" id="lastName" placeholder="Введите фамилию">
-        </div>
-
-        <div class="field">
-            <label for="firstName">ИМЯ</label>
-            <input type="text" id="firstName" placeholder="Введите имя">
-        </div>
-
-        <div class="field">
-            <label for="function">ФУНКЦИЯ</label>
-            <select id="function">
-                <option value="">Выберите функцию</option>
-                <option value="manager">manager</option>
-                <option value="asistent">asistent</option>
-                <option value="operator">operator</option>
-                <option value="receptioner">receptioner</option>
-                <option value="универсальный пользователь">универсальный пользователь</option>
-            </select>
-        </div>
-
-        <div class="field">
-            <label for="description">ОПИСАНИЕ</label>
-            <input type="text" id="description" class="description" readonly maxlength="30" placeholder="Заполнится автоматически">
-        </div>
-
-        <div class="field">
-            <label for="login">ЛОГИН</label>
-            <input type="text" id="login" class="login" readonly placeholder="Заполнится автоматически">
-        </div>
-
-        <div class="field">
-            <label for="password">ПАРОЛЬ</label>
-            <div class="password-row">
-                <input type="text" id="password" readonly placeholder="Пароль">
-                <button type="button" id="generatePassword">Сгенерировать</button>
-            </div>
-        </div>
-
-        <button type="button" id="saveUserButton">Добавить в таблицу</button>
+        <button class="btn btn-add" id="btnAdd">Добавить в таблицу</button>
     </div>
-</div>
 
-<div class="table-container" id="tableContainer">
-    <h2>Пользователи</h2>
-    <button type="button" id="saveExcelButton" class="save-excel-button">Отправить в Telegram</button>
-    <table>
-        <thead>
-            <tr>
-                <th class="number-column">№</th>
-                <th>MAG</th>
-                <th>ID</th>
-                <th>ПРОГРАММА</th>
-                <th>ФАМИЛИЯ</th>
-                <th>ИМЯ</th>
-                <th>ФУНКЦИЯ</th>
-                <th>ОПИСАНИЕ</th>
-                <th>ПРОФИЛЬ</th>
-                <th>ЛОГИН</th>
-                <th>ПАРОЛЬ</th>
-                <th>ДЕЙСТВИЕ</th>
-            </tr>
-        </thead>
-        <tbody id="usersTableBody"></tbody>
-    </table>
-</div>
+    <div class="card">
+        <h3>Пользователи</h3>
+        <button class="btn btn-send" id="btnSend">Отправить в Telegram</button>
 
-<script>
-    // ==========================================
-    // ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP
-    // ==========================================
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-    }
+        <div class="table-container">
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>MAG</th>
+                        <th>ID</th>
+                        <th>ПРОГРАММА</th>
+                        <th>ФАМИЛИЯ</th>
+                        <th>ИМЯ</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Записи добавляются динамически -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-    // ==========================================
-    // БЛОКИРОВКА ПРОСМОТРА КОДА
-    // ==========================================
-    document.addEventListener('contextmenu', event => event.preventDefault());
-    document.addEventListener('keydown', function (e) {
-        if (
-            e.keyCode === 123 || 
-            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || 
-            (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83))
-        ) {
-            e.preventDefault();
-            return false;
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.ready();
+            tg.expand();
         }
-    });
 
-    // ==========================================
-    // ЛОГИКА ПРИЛОЖЕНИЯ
-    // ==========================================
-    const magInput = document.getElementById("mag");
-    const idInput = document.getElementById("userId");
-    const addUserButton = document.getElementById("addUserButton");
-    const userForm = document.getElementById("userForm");
-    const programSelect = document.getElementById("program");
-    const lastNameInput = document.getElementById("lastName");
-    const firstNameInput = document.getElementById("firstName");
-    const functionSelect = document.getElementById("function");
-    const descriptionInput = document.getElementById("description");
-    const loginInput = document.getElementById("login");
-    const passwordInput = document.getElementById("password");
-    const generatePasswordButton = document.getElementById("generatePassword");
-    const saveUserButton = document.getElementById("saveUserButton");
-    const tableContainer = document.getElementById("tableContainer");
-    const usersTableBody = document.getElementById("usersTableBody");
-    const saveExcelButton = document.getElementById("saveExcelButton");
+        const BACKEND_URL = "https://telegram-users-xiba.onrender.com/api/upload";
+        let usersData = [];
 
-    const receptionerOption = functionSelect.querySelector('option[value="receptioner"]');
-    const universalOption = functionSelect.querySelector('option[value="универсальный пользователь"]');
+        const btnAdd = document.getElementById('btnAdd');
+        const btnSend = document.getElementById('btnSend');
+        const tableBody = document.getElementById('tableBody');
 
-    let users = [];
+        // Добавление записи в список
+        btnAdd.addEventListener('click', () => {
+            const mag = document.getElementById('inputMag').value;
+            const id = document.getElementById('inputId').value;
+            const lastName = document.getElementById('inputLastName').value;
+            const firstName = document.getElementById('inputFirstName').value;
+            const program = document.getElementById('selectProgram').value;
 
-    addUserButton.addEventListener("click", function () {
-        if (magInput.value.trim() === "") { alert("Введите MAG"); magInput.focus(); return; }
-        if (idInput.value.trim() === "") { alert("Введите ID"); idInput.focus(); return; }
-        userForm.style.display = "block";
-        programSelect.focus();
-    });
-
-    function updateFunctionOptions() {
-        const program = programSelect.value;
-        if (program === "GOLD") {
-            receptionerOption.disabled = true;
-            universalOption.disabled = true;
-            if (functionSelect.value === "receptioner" || functionSelect.value === "универсальный пользователь") {
-                functionSelect.value = "";
+            if (!mag || !id || !lastName || !firstName) {
+                alert("Заполните все поля формы!");
+                return;
             }
-        } else {
-            receptionerOption.disabled = false;
-            universalOption.disabled = false;
-        }
-    }
 
-    function updateDescription() {
-        const lastName = lastNameInput.value.trim();
-        const firstName = firstNameInput.value.trim();
-        const userFunction = functionSelect.value;
-        const mag = magInput.value.trim();
+            const newUser = {
+                num: usersData.length + 1,
+                mag: mag,
+                id: id,
+                program: program,
+                lastName: lastName,
+                firstName: firstName
+            };
 
-        if (!lastName || !firstName || !userFunction || !mag) {
-            descriptionInput.value = "";
-            return;
-        }
-
-        const fullName = lastName + " " + firstName;
-        const suffix = " L-" + mag;
-        let description = fullName + " " + userFunction + suffix;
-
-        if (description.length <= 30) {
-            descriptionInput.value = description;
-            return;
-        }
-
-        const availableFunctionLength = 30 - fullName.length - suffix.length - 1;
-        let shortenedFunction = availableFunctionLength > 0 ? userFunction.slice(0, availableFunctionLength) : "";
-        description = fullName + " " + shortenedFunction + suffix;
-        descriptionInput.value = description.slice(0, 30);
-    }
-
-    function updateGsm2Password() {
-        if (programSelect.value !== "GSM2") return;
-        const lastName = lastNameInput.value.trim();
-        const firstName = firstNameInput.value.trim();
-        passwordInput.value = (lastName.substring(0, 2) + firstName.substring(0, 2)).toLowerCase();
-    }
-
-    function updateLogin() {
-        const lastName = lastNameInput.value.trim();
-        const firstName = firstNameInput.value.trim();
-        const program = programSelect.value;
-        const userFunction = functionSelect.value;
-        const mag = magInput.value.trim();
-
-        if (userFunction === "receptioner") {
-            loginInput.value = "rec" + mag;
-            passwordInput.value = "rec" + mag;
-            generatePasswordButton.disabled = true;
-            return;
-        }
-
-        if (userFunction === "универсальный пользователь") {
-            loginInput.value = "lin" + mag;
-            passwordInput.value = "lin" + mag;
-            generatePasswordButton.disabled = true;
-            return;
-        }
-
-        if (!lastName || !firstName || !program) {
-            loginInput.value = "";
-            return;
-        }
-
-        if (program === "GOLD") {
-            loginInput.value = firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase() + lastName.slice(1);
-            return;
-        }
-
-        if (program === "GSM2") {
-            loginInput.value = (lastName.substring(0, 2) + firstName.substring(0, 2)).toLowerCase();
-        }
-    }
-
-    function updatePassword() {
-        const userFunction = functionSelect.value;
-        const program = programSelect.value;
-        const mag = magInput.value.trim();
-
-        if (userFunction === "receptioner") {
-            passwordInput.value = "rec" + mag;
-            generatePasswordButton.disabled = true;
-            return;
-        }
-
-        if (userFunction === "универсальный пользователь") {
-            passwordInput.value = "lin" + mag;
-            generatePasswordButton.disabled = true;
-            return;
-        }
-
-        if (program === "GSM2") {
-            generatePasswordButton.disabled = true;
-            updateGsm2Password();
-            return;
-        }
-
-        if (program === "GOLD") {
-            generatePasswordButton.disabled = false;
-        }
-    }
-
-    programSelect.addEventListener("change", function () {
-        updateFunctionOptions();
-        updateDescription();
-        updateLogin();
-        updatePassword();
-    });
-
-    lastNameInput.addEventListener("input", function () {
-        updateDescription();
-        updateGsm2Password();
-        updateLogin();
-        updatePassword();
-    });
-
-    firstNameInput.addEventListener("input", function () {
-        updateDescription();
-        updateGsm2Password();
-        updateLogin();
-        updatePassword();
-    });
-
-    functionSelect.addEventListener("change", function () {
-        updateDescription();
-        updateLogin();
-        updatePassword();
-    });
-
-    magInput.addEventListener("input", function () {
-        updateDescription();
-        updateLogin();
-        updatePassword();
-    });
-
-    function generatePassword() {
-        const upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const lowerCase = "abcdefghijklmnopqrstuvwxyz";
-        const numbers = "0123456789";
-        const allCharacters = upperCase + lowerCase + numbers;
-
-        let password = "";
-        password += upperCase[Math.floor(Math.random() * upperCase.length)];
-        password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
-        password += numbers[Math.floor(Math.random() * numbers.length)];
-
-        for (let i = 0; i < 2; i++) {
-            password += allCharacters[Math.floor(Math.random() * allCharacters.length)];
-        }
-
-        password = password.split("").sort(() => Math.random() - 0.5).join("");
-        passwordInput.value = password.substring(0, 5);
-    }
-
-    generatePasswordButton.addEventListener("click", function () {
-        if (programSelect.value === "GOLD" && functionSelect.value !== "receptioner" && functionSelect.value !== "универсальный пользователь") {
-            generatePassword();
-        }
-    });
-
-    function getProfile(program) {
-        if (program === "GOLD") return "GSO (1ADM_SHOP) (ADM_SHOP)";
-        if (program === "GSM2") return "GSM (M1_ADM_SH) (M_ADMIN_SHOP)";
-        return "";
-    }
-
-    function validateUserForm() {
-        if (magInput.value.trim() === "") { alert("Введите MAG"); magInput.focus(); return false; }
-        if (idInput.value.trim() === "") { alert("Введите ID"); idInput.focus(); return false; }
-        if (programSelect.value === "") { alert("Выберите программу"); programSelect.focus(); return false; }
-        if (lastNameInput.value.trim() === "") { alert("Введите фамилию"); lastNameInput.focus(); return false; }
-        if (firstNameInput.value.trim() === "") { alert("Введите имя"); firstNameInput.focus(); return false; }
-        if (functionSelect.value === "") { alert("Выберите функцию"); functionSelect.focus(); return false; }
-        if (descriptionInput.value.trim() === "") { alert("Не удалось сформировать описание"); return false; }
-        if (loginInput.value.trim() === "") { alert("Не удалось сформировать логин"); return false; }
-        if (passwordInput.value.trim() === "" && programSelect.value === "GOLD") {
-            alert("Для GOLD необходимо сгенерировать пароль");
-            generatePasswordButton.focus();
-            return false;
-        }
-        return true;
-    }
-
-    saveUserButton.addEventListener("click", function () {
-        if (!validateUserForm()) return;
-
-        const user = {
-            mag: magInput.value.trim(),
-            id: idInput.value.trim(),
-            program: programSelect.value,
-            lastName: lastNameInput.value.trim(),
-            firstName: firstNameInput.value.trim(),
-            userFunction: functionSelect.value,
-            description: descriptionInput.value,
-            profile: getProfile(programSelect.value),
-            login: loginInput.value,
-            password: passwordInput.value
-        };
-
-        users.push(user);
-        sortUsers();
-        tableContainer.style.display = "block";
-        renderTable();
-        clearUserForm();
-        magInput.focus();
-    });
-
-    function sortUsers() {
-        users.sort((a, b) => a.lastName.localeCompare(b.lastName, "ru", { sensitivity: "base" }));
-    }
-
-    function renderTable() {
-        usersTableBody.innerHTML = "";
-        users.forEach(function (user, index) {
-            const row = document.createElement("tr");
-
-            row.innerHTML = `
-                <td class="number-column">${index + 1}</td>
-                <td>${user.mag}</td>
-                <td>${user.id}</td>
-                <td>${user.program}</td>
-                <td>${user.lastName}</td>
-                <td>${user.firstName}</td>
-                <td>${user.userFunction}</td>
-                <td>${user.description}</td>
-                <td>${user.profile}</td>
-                <td>${user.login}</td>
-                <td>${user.password}</td>
-                <td><button type="button" class="delete-button" onclick="deleteUser(${index})">Удалить</button></td>
-            `;
-
-            usersTableBody.appendChild(row);
-        });
-    }
-
-    window.deleteUser = function(index) {
-        const user = users[index];
-        if (confirm("Удалить пользователя " + user.lastName + " " + user.firstName + "?")) {
-            users.splice(index, 1);
-            sortUsers();
+            usersData.push(newUser);
             renderTable();
-            if (users.length === 0) tableContainer.style.display = "none";
-        }
-    };
-
-    function clearUserForm() {
-        magInput.value = "";
-        idInput.value = "";
-        programSelect.value = "";
-        lastNameInput.value = "";
-        firstNameInput.value = "";
-        functionSelect.value = "";
-        descriptionInput.value = "";
-        loginInput.value = "";
-        passwordInput.value = "";
-        receptionerOption.disabled = false;
-        universalOption.disabled = false;
-        generatePasswordButton.disabled = false;
-    }
-
-    // ==========================================
-    // ГЕНЕРАЦИЯ И ОТПРАВКА В TELEGRAM
-    // ==========================================
-    saveExcelButton.addEventListener("click", function () {
-        if (users.length === 0) { alert("Нет пользователей для сохранения"); return; }
-
-        const excelData = users.map((user, index) => ({
-            "№": index + 1,
-            "MAG": user.mag,
-            "ID": user.id,
-            "ПРОГРАММА": user.program,
-            "ФАМИЛИЯ": user.lastName,
-            "ИМЯ": user.firstName,
-            "ФУНКЦИЯ": user.userFunction,
-            "ОПИСАНИЕ": user.description,
-            "ПРОФИЛЬ": user.profile,
-            "ЛОГИН": user.login,
-            "ПАРОЛЬ": user.password
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(excelData);
-        worksheet["!cols"] = [
-            { wch: 5 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
-            { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 35 },
-            { wch: 35 }, { wch: 20 }, { wch: 15 }
-        ];
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Пользователи");
-
-        const magForFile = users[0].mag.trim().replace(/[\\/:*?"<>|]/g, "_");
-        const fileName = "users_" + magForFile + ".xlsx";
-
-        // Генерация бинарного файла Excel
-        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-        // Подготовка данных формы для бэкенда Render
-        const formData = new FormData();
-        formData.append('file', blob, fileName);
-        formData.append('initData', window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : '');
-
-        saveExcelButton.disabled = true;
-        saveExcelButton.textContent = "Отправка в Telegram...";
-
-        fetch('https://telegram-users-xiba.onrender.com/api/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("Ошибка сервера при отправке файла");
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'ok') {
-                alert("Файл успешно отправлен в ваш чат!");
-                if (window.Telegram && window.Telegram.WebApp) {
-                    window.Telegram.WebApp.close();
-                }
-            }
-        })
-        .catch(error => {
-            alert("Ошибка: " + error.message);
-        })
-        .finally(() => {
-            saveExcelButton.disabled = false;
-            saveExcelButton.textContent = "Отправить в Telegram";
         });
-    });
 
-    updateFunctionOptions();
-    updatePassword();
-</script>
+        // Отрисовка таблицы
+        function renderTable() {
+            tableBody.innerHTML = '';
+            usersData.forEach((u, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${u.mag}</td>
+                    <td>${u.id}</td>
+                    <td>${u.program}</td>
+                    <td>${u.lastName}</td>
+                    <td>${u.firstName}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
 
+        // Генерация Excel файла в формат Base64
+        function generateExcelBase64() {
+            const wsData = [
+                ["№", "MAG", "ID", "ПРОГРАММА", "ФАМИЛИЯ", "ИМЯ"]
+            ];
+
+            usersData.forEach((u, index) => {
+                wsData.push([index + 1, u.mag, u.id, u.program, u.lastName, u.firstName]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Users");
+
+            // Экспорт файла в формате base64
+            const base64String = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+            return base64String;
+        }
+
+        // Отправка запроса на бэкенд
+        btnSend.addEventListener('click', async () => {
+            if (usersData.length === 0) {
+                alert("Сначала добавьте хотя бы одного пользователя!");
+                return;
+            }
+
+            btnSend.disabled = true;
+            btnSend.innerText = "Отправка в Telegram...";
+
+            try {
+                const base64Data = generateExcelBase64();
+                const initData = tg ? tg.initData : '';
+
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_base64: base64Data,
+                        filename: 'users_gold.xlsx',
+                        initData: initData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'ok') {
+                    if (tg) {
+                        tg.close();
+                    } else {
+                        alert("Файл успешно отправлен!");
+                    }
+                } else {
+                    alert("Ошибка: " + (result.detail || "Не удалось отправить файл"));
+                }
+            } catch (err) {
+                alert("Ошибка сети: " + err.message);
+            } finally {
+                btnSend.disabled = false;
+                btnSend.innerText = "Отправить в Telegram";
+            }
+        });
+    </script>
 </body>
 </html>
