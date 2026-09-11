@@ -3,89 +3,93 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Добавление пользователей</title>
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Библиотека XLSX -->
+    <!-- Библиотека для создания Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
         * {
             box-sizing: border-box;
+            /* Запрет выделения текста на странице */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Разрешаем выделять текст только внутри полей ввода */
+        input, select {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--tg-theme-bg-color, #f4f4f4);
-            color: var(--tg-theme-text-color, #000000);
-            padding: 15px;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
             margin: 0;
         }
 
         .container {
             max-width: 600px;
             margin: 0 auto;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         h2 {
             margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 20px;
+            margin-bottom: 25px;
         }
 
         .field {
-            margin-bottom: 12px;
+            margin-bottom: 15px;
         }
 
         label {
             display: block;
-            margin-bottom: 4px;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--tg-theme-hint-color, #666);
+            margin-bottom: 5px;
+            font-weight: bold;
         }
 
         input, select, button {
             width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            border-radius: 8px;
-            background: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-            outline: none;
+            box-sizing: border-box;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
 
         input:disabled, select:disabled {
-            background: var(--tg-theme-secondary-bg-color, #e9e9e9);
-            opacity: 0.6;
+            background: #e9e9e9;
+            color: #666;
         }
 
         button {
             cursor: pointer;
-            background: var(--tg-theme-button-color, #1976d2);
-            color: var(--tg-theme-button-text-color, #ffffff);
+            background: #1976d2;
+            color: white;
             border: none;
-            font-weight: 600;
             margin-top: 5px;
-            transition: opacity 0.2s;
         }
 
-        button:active {
-            opacity: 0.8;
-        }
+        button:hover { background: #125ca5; }
+        button:disabled { background: #aaa; cursor: not-allowed; }
 
         .user-form {
             display: none;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid var(--tg-theme-hint-color, #ddd);
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
         }
 
         .password-row {
@@ -93,65 +97,76 @@
             gap: 8px;
         }
 
-        .password-row input {
-            flex: 1;
-        }
+        .password-row input { flex: 1; }
+        .password-row button { width: auto; white-space: nowrap; }
 
-        .password-row button {
-            width: auto;
-            white-space: nowrap;
-        }
-
-        .description, .login {
-            opacity: 0.8;
-        }
+        .description, .login, .profile { background: #f0f0f0; }
 
         #saveUserButton {
             background: #2e7d32;
-            margin-top: 15px;
+            margin-top: 10px;
         }
+        #saveUserButton:hover { background: #1b5e20; }
 
         .table-container {
             display: none;
-            margin-top: 20px;
-            background: var(--tg-theme-secondary-bg-color, #ffffff);
-            padding: 15px;
-            border-radius: 12px;
+            margin-top: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow-x: auto;
         }
 
         .save-excel-button {
             background: #217346;
+            width: auto;
+            padding: 10px 20px;
             margin-bottom: 15px;
         }
+        .save-excel-button:hover { background: #185c37; }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 900px;
+            min-width: 1200px;
+            background: white;
         }
 
         th, td {
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border: 1px solid #ccc;
             padding: 8px;
             text-align: left;
-            font-size: 13px;
+            vertical-align: middle;
         }
 
         th {
-            background: var(--tg-theme-button-color, #1976d2);
-            color: var(--tg-theme-button-text-color, #fff);
+            background: #1976d2;
+            color: white;
+            font-weight: bold;
+            white-space: nowrap;
         }
+
+        tbody tr:nth-child(even) { background: #f7f7f7; }
+        tbody tr:hover { background: #eef5ff; }
 
         .delete-button {
             background: #d32f2f;
-            padding: 6px 10px;
-            font-size: 12px;
+            width: auto;
+            padding: 7px 12px;
+            margin: 0;
         }
+        .delete-button:hover { background: #b71c1c; }
 
         .number-column {
             text-align: center;
-            width: 40px;
+            width: 50px;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            .container { padding: 18px; }
+            .table-container { padding: 10px; }
         }
     </style>
 </head>
@@ -228,8 +243,8 @@
 </div>
 
 <div class="table-container" id="tableContainer">
-    <h2>Список пользователей</h2>
-    <button type="button" id="saveExcelButton" class="save-excel-button">Сохранить в Excel</button>
+    <h2>Пользователи</h2>
+    <button type="button" id="saveExcelButton" class="save-excel-button">Отправить в Telegram</button>
     <table>
         <thead>
             <tr>
@@ -253,19 +268,31 @@
 
 <script>
     // ==========================================
-    // ИНИЦИАЛИЗА TELEGRAM WEB APP
+    // ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP
     // ==========================================
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
-
-    if (tg) {
-        tg.ready();
-        tg.expand(); // Разворачиваем приложение на весь экран
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
     }
 
-    // Хранилище
-    let users = [];
+    // ==========================================
+    // БЛОКИРОВКА ПРОСМОТРА КОДА
+    // ==========================================
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    document.addEventListener('keydown', function (e) {
+        if (
+            e.keyCode === 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || 
+            (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83))
+        ) {
+            e.preventDefault();
+            return false;
+        }
+    });
 
-    // Элементы
+    // ==========================================
+    // ЛОГИКА ПРИЛОЖЕНИЯ
+    // ==========================================
     const magInput = document.getElementById("mag");
     const idInput = document.getElementById("userId");
     const addUserButton = document.getElementById("addUserButton");
@@ -286,40 +313,13 @@
     const receptionerOption = functionSelect.querySelector('option[value="receptioner"]');
     const universalOption = functionSelect.querySelector('option[value="универсальный пользователь"]');
 
-    // Хелпер для вибрации (Haptic Feedback)
-    function triggerHaptic(type = 'light') {
-        if (tg && tg.HapticFeedback) {
-            if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
-            else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
-            else tg.HapticFeedback.impactOccurred(type);
-        }
-    }
-
-    // Хелпер для алертов через Telegram API
-    function showAlert(message) {
-        if (tg && tg.showAlert) {
-            tg.showAlert(message);
-        } else {
-            alert(message);
-        }
-    }
+    let users = [];
 
     addUserButton.addEventListener("click", function () {
-        if (magInput.value.trim() === "") {
-            showAlert("Введите MAG");
-            magInput.focus();
-            triggerHaptic('error');
-            return;
-        }
-        if (idInput.value.trim() === "") {
-            showAlert("Введите ID");
-            idInput.focus();
-            triggerHaptic('error');
-            return;
-        }
+        if (magInput.value.trim() === "") { alert("Введите MAG"); magInput.focus(); return; }
+        if (idInput.value.trim() === "") { alert("Введите ID"); idInput.focus(); return; }
         userForm.style.display = "block";
         programSelect.focus();
-        triggerHaptic('light');
     });
 
     function updateFunctionOptions() {
@@ -440,21 +440,30 @@
         updatePassword();
     });
 
-    [lastNameInput, firstNameInput].forEach(el => {
-        el.addEventListener("input", function () {
-            updateDescription();
-            updateGsm2Password();
-            updateLogin();
-            updatePassword();
-        });
+    lastNameInput.addEventListener("input", function () {
+        updateDescription();
+        updateGsm2Password();
+        updateLogin();
+        updatePassword();
     });
 
-    [functionSelect, magInput].forEach(el => {
-        el.addEventListener("change", function () {
-            updateDescription();
-            updateLogin();
-            updatePassword();
-        });
+    firstNameInput.addEventListener("input", function () {
+        updateDescription();
+        updateGsm2Password();
+        updateLogin();
+        updatePassword();
+    });
+
+    functionSelect.addEventListener("change", function () {
+        updateDescription();
+        updateLogin();
+        updatePassword();
+    });
+
+    magInput.addEventListener("input", function () {
+        updateDescription();
+        updateLogin();
+        updatePassword();
     });
 
     function generatePassword() {
@@ -474,7 +483,6 @@
 
         password = password.split("").sort(() => Math.random() - 0.5).join("");
         passwordInput.value = password.substring(0, 5);
-        triggerHaptic('medium');
     }
 
     generatePasswordButton.addEventListener("click", function () {
@@ -490,26 +498,24 @@
     }
 
     function validateUserForm() {
-        if (magInput.value.trim() === "") { showAlert("Введите MAG"); return false; }
-        if (idInput.value.trim() === "") { showAlert("Введите ID"); return false; }
-        if (programSelect.value === "") { showAlert("Выберите программу"); return false; }
-        if (lastNameInput.value.trim() === "") { showAlert("Введите фамилию"); return false; }
-        if (firstNameInput.value.trim() === "") { showAlert("Введите имя"); return false; }
-        if (functionSelect.value === "") { showAlert("Выберите функцию"); return false; }
-        if (descriptionInput.value.trim() === "") { showAlert("Не удалось сформировать описание"); return false; }
-        if (loginInput.value.trim() === "") { showAlert("Не удалось сформировать логин"); return false; }
+        if (magInput.value.trim() === "") { alert("Введите MAG"); magInput.focus(); return false; }
+        if (idInput.value.trim() === "") { alert("Введите ID"); idInput.focus(); return false; }
+        if (programSelect.value === "") { alert("Выберите программу"); programSelect.focus(); return false; }
+        if (lastNameInput.value.trim() === "") { alert("Введите фамилию"); lastNameInput.focus(); return false; }
+        if (firstNameInput.value.trim() === "") { alert("Введите имя"); firstNameInput.focus(); return false; }
+        if (functionSelect.value === "") { alert("Выберите функцию"); functionSelect.focus(); return false; }
+        if (descriptionInput.value.trim() === "") { alert("Не удалось сформировать описание"); return false; }
+        if (loginInput.value.trim() === "") { alert("Не удалось сформировать логин"); return false; }
         if (passwordInput.value.trim() === "" && programSelect.value === "GOLD") {
-            showAlert("Для GOLD необходимо сгенерировать пароль");
+            alert("Для GOLD необходимо сгенерировать пароль");
+            generatePasswordButton.focus();
             return false;
         }
         return true;
     }
 
     saveUserButton.addEventListener("click", function () {
-        if (!validateUserForm()) {
-            triggerHaptic('error');
-            return;
-        }
+        if (!validateUserForm()) return;
 
         const user = {
             mag: magInput.value.trim(),
@@ -530,7 +536,6 @@
         renderTable();
         clearUserForm();
         magInput.focus();
-        triggerHaptic('success');
     });
 
     function sortUsers() {
@@ -539,8 +544,9 @@
 
     function renderTable() {
         usersTableBody.innerHTML = "";
-        users.forEach((user, index) => {
+        users.forEach(function (user, index) {
             const row = document.createElement("tr");
+
             row.innerHTML = `
                 <td class="number-column">${index + 1}</td>
                 <td>${user.mag}</td>
@@ -555,26 +561,18 @@
                 <td>${user.password}</td>
                 <td><button type="button" class="delete-button" onclick="deleteUser(${index})">Удалить</button></td>
             `;
+
             usersTableBody.appendChild(row);
         });
     }
 
     window.deleteUser = function(index) {
         const user = users[index];
-        const confirmDelete = () => {
+        if (confirm("Удалить пользователя " + user.lastName + " " + user.firstName + "?")) {
             users.splice(index, 1);
             sortUsers();
             renderTable();
             if (users.length === 0) tableContainer.style.display = "none";
-            triggerHaptic('medium');
-        };
-
-        if (tg && tg.showConfirm) {
-            tg.showConfirm(`Удалить пользователя ${user.lastName} ${user.firstName}?`, (confirmed) => {
-                if (confirmed) confirmDelete();
-            });
-        } else {
-            if (confirm(`Удалить пользователя ${user.lastName} ${user.firstName}?`)) confirmDelete();
         }
     };
 
@@ -594,13 +592,10 @@
     }
 
     // ==========================================
-    // СОХРАНЕНИЕ / ОТПРАВКА
+    // ГЕНЕРАЦИЯ И ОТПРАВКА В TELEGRAM
     // ==========================================
     saveExcelButton.addEventListener("click", function () {
-        if (users.length === 0) {
-            showAlert("Нет пользователей для сохранения");
-            return;
-        }
+        if (users.length === 0) { alert("Нет пользователей для сохранения"); return; }
 
         const excelData = users.map((user, index) => ({
             "№": index + 1,
@@ -629,40 +624,46 @@
         const magForFile = users[0].mag.trim().replace(/[\\/:*?"<>|]/g, "_");
         const fileName = "users_" + magForFile + ".xlsx";
 
-        // Если открыто внутри Telegram
-        if (tg && tg.initData) {
-            // Генерация бинарного файла Excel
-            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([wbout], { type: 'application/octet-stream' });
+        // Генерация бинарного файла Excel
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-            // Отправляем данные бота на бэкенд
-            const formData = new FormData();
-            formData.append('file', blob, fileName);
-            formData.append('initData', tg.initData);
+        // Подготовка данных формы для бэкенда Render
+        const formData = new FormData();
+        formData.append('file', blob, fileName);
+        formData.append('initData', window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : '');
 
-            // Пример вызова серверного скрипта (замените URL на ваш бэкенд)
-            fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                triggerHaptic('success');
-                tg.close(); // Закрываем Mini App после успешной отправки
-            })
-            .catch(err => {
-                // Если нет сервера, скачиваем локально как файл
-                XLSX.writeFile(workbook, fileName);
-            });
+        saveExcelButton.disabled = true;
+        saveExcelButton.textContent = "Отправка в Telegram...";
 
-        } else {
-            // Если открыто в обычном браузере
-            XLSX.writeFile(workbook, fileName);
-        }
+        fetch('https://telegram-users-xiba.onrender.com/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Ошибка сервера при отправке файла");
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'ok') {
+                alert("Файл успешно отправлен в ваш чат!");
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.close();
+                }
+            }
+        })
+        .catch(error => {
+            alert("Ошибка: " + error.message);
+        })
+        .finally(() => {
+            saveExcelButton.disabled = false;
+            saveExcelButton.textContent = "Отправить в Telegram";
+        });
     });
 
     updateFunctionOptions();
     updatePassword();
 </script>
+
 </body>
 </html>
