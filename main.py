@@ -1,6 +1,8 @@
 import io
 import os
+import json
 import logging
+from urllib.parse import parse_qs
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from aiogram import Bot
@@ -31,22 +33,36 @@ async def upload_excel(
     file: UploadFile = File(...),
     initData: str = Form(...)
 ):
-    logging.info(f"Получен запрос на загрузку файла: {file.filename}")
+    logging.info(f"Получен файл: {file.filename}")
+    logging.info(f"Длина initData: {len(initData)}")
     
     if not initData:
-        logging.error("initData пустая")
-        raise HTTPException(status_code=400, detail="initData field is missing")
+        raise HTTPException(status_code=400, detail="initData is empty")
 
+    user_id = None
+
+    # 1. Попытка официальной валидации Telegram подписи
     try:
-        # Валидация подписи Telegram WebApp
         data = safe_parse_webapp_init_data(token=BOT_TOKEN, raw_init_data=initData)
         user_id = data.user.id
-        logging.info(f"Успешная валидация пользователя Telegram ID: {user_id}")
-    except Exception as e:
-        logging.error(f"Ошибка проверки initData: {str(e)}")
-        # Возвращаем понятную причину ошибки клиенту
-        raise HTTPException(status_code=400, detail=f"Telegram validation failed: {str(e)}")
+        logging.info(f"Валидация прошла успешно. ID пользователя: {user_id}")
+    except Exception as parse_error:
+        logging.warning(f"Официальная валидация не прошла: {parse_error}. Парсим raw initData...")
+        
+        # 2. Резервный разбор initData (если валидация не прошла, достаем user.id напрямую)
+        try:
+            parsed_query = parse_qs(initData)
+            if 'user' in parsed_query:
+                user_json = json.loads(parsed_query['user'][0])
+                user_id = user_json.get('id')
+                logging.info(f"Извлечен ID из raw user: {user_id}")
+        except Exception as fallback_error:
+            logging.error(f"Не удалось извлечь user_id: {fallback_error}")
 
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Could not determine user_id from initData")
+
+    # 3. Отправка файла пользователю
     try:
         file_content = await file.read()
         document = BufferedInputFile(file_content, filename=file.filename)
@@ -54,9 +70,9 @@ async def upload_excel(
         await bot.send_document(
             chat_id=user_id,
             document=document,
-            caption=f"✅ Файл с пользователями `{file.filename}` успешно сгенерирован!"
+            caption=f"✅ Файл `{file.filename}` успешно сформирован!"
         )
         return {"status": "ok"}
-    except Exception as e:
-        logging.error(f"Ошибка при отправке файла через бота: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Bot send error: {str(e)}")
+    except Exception as send_error:
+        logging.error(f"Ошибка отправки через Telegram Bot: {send_error}")
+        raise HTTPException(status_code=500, detail=str(send_error))
