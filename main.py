@@ -61,13 +61,13 @@ async def upload_excel(payload: UploadPayload):
         logging.error(error_msg)
         raise HTTPException(status_code=400, detail=error_msg)
 
-    # 3. Декодирование и отправка ЖЕСТКО В ВАШ ЧАТ
+ # 3. Декодирование и отправка ЖЕСТКО В ВАШУ ОБНОВЛЕННУЮ СУПЕРГРУППУ
     try:
         file_bytes = base64.b64decode(payload.file_base64)
         document = BufferedInputFile(file_bytes, filename=payload.filename)
         
-        # Указываем ID вашего конкретного чата вместо user_id
-        TARGET_CHAT_ID = -5300158746 
+        # Заменили старый ID на новый актуальный ID супергруппы
+        TARGET_CHAT_ID = -1004403001203 
         
         await bot.send_document(
             chat_id=TARGET_CHAT_ID,
