@@ -61,15 +61,18 @@ async def upload_excel(payload: UploadPayload):
         logging.error(error_msg)
         raise HTTPException(status_code=400, detail=error_msg)
 
-    # 3. Декодирование и отправка в бот
+    # 3. Декодирование и отправка ЖЕСТКО В ВАШ ЧАТ
     try:
         file_bytes = base64.b64decode(payload.file_base64)
         document = BufferedInputFile(file_bytes, filename=payload.filename)
         
+        # Указываем ID вашего конкретного чата вместо user_id
+        TARGET_CHAT_ID = -5300158746 
+        
         await bot.send_document(
-            chat_id=user_id,
+            chat_id=TARGET_CHAT_ID,
             document=document,
-            caption=f"✅ Файл `{payload.filename}` успешно сгенерирован!"
+            caption=f"✅ Новые пользователи! Файл `{payload.filename}` успешно сгенерирован участником с ID {user_id}."
         )
         return {"status": "ok"}
     except Exception as send_error:
