@@ -216,8 +216,8 @@
         </div>
 
         <div class="field">
-            <label for="description">ОПИСАНИЕ</label>
-            <input type="text" id="description" class="description" readonly maxlength="30" placeholder="Заполнится автоматически">
+            <label for="description">ОПИСАНИЕ (макс. 12 символов)</label>
+            <input type="text" id="description" class="description" readonly maxlength="12" placeholder="Заполнится автоматически">
         </div>
 
         <div class="field">
@@ -342,30 +342,35 @@
         }
     }
 
+    // Обновленная логика описания (без "L-", макс 12 символов: [Функция/УниПольз] + " " + [MAG])
     function updateDescription() {
-        const lastName = lastNameInput.value.trim();
-        const firstName = firstNameInput.value.trim();
         const userFunction = functionSelect.value;
         const mag = magInput.value.trim();
 
-        if (!lastName || !firstName || !userFunction || !mag) {
+        if (!userFunction || !mag) {
             descriptionInput.value = "";
             return;
         }
 
-        const fullName = lastName + " " + firstName;
-        const suffix = " L-" + mag;
-        let description = fullName + " " + userFunction + suffix;
+        let baseText = "";
+        if (userFunction === "универсальный пользователь") {
+            baseText = "УниПольз";
+        } else {
+            baseText = userFunction;
+        }
 
-        if (description.length <= 30) {
-            descriptionInput.value = description;
+        const suffix = " " + mag;
+        const maxBaseLength = 12 - suffix.length;
+
+        if (maxBaseLength <= 0) {
+            descriptionInput.value = (baseText + suffix).substring(0, 12);
             return;
         }
 
-        const availableFunctionLength = 30 - fullName.length - suffix.length - 1;
-        let shortenedFunction = availableFunctionLength > 0 ? userFunction.slice(0, availableFunctionLength) : "";
-        description = fullName + " " + shortenedFunction + suffix;
-        descriptionInput.value = description.slice(0, 30);
+        let trimmedBase = baseText.length > maxBaseLength ? baseText.substring(0, maxBaseLength) : baseText;
+        let description = trimmedBase + suffix;
+
+        descriptionInput.value = description.substring(0, 12);
     }
 
     function updateGsm2Password() {
@@ -448,7 +453,6 @@
 
     [lastNameInput, firstNameInput].forEach(el => {
         el.addEventListener("input", function () {
-            updateDescription();
             updateGsm2Password();
             updateLogin();
             updatePassword();
@@ -461,6 +465,10 @@
             updateLogin();
             updatePassword();
         });
+    });
+    
+    magInput.addEventListener("input", function() {
+        updateDescription();
     });
 
     function generatePassword() {
@@ -599,9 +607,6 @@
         generatePasswordButton.disabled = false;
     }
 
-    // ==========================================
-    // ГЕНЕРАЦИЯ И ОТПРАВКА В TELEGRAM
-    // ==========================================
     saveExcelButton.addEventListener("click", async function () {
         if (users.length === 0) {
             showAlert("Нет пользователей для сохранения");
@@ -635,10 +640,9 @@
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Пользователи");
 
-        const magForFile = users[0].mag.trim().replace(/[\\/:*?"<>|]/g, "_");
+        const magForFile = String(users[0].mag).trim().replace(/[\\/:*?"<>|]/g, "_");
         const fileName = "users_" + magForFile + ".xlsx";
 
-        // Преобразование в Base64
         const base64String = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
         const initData = tg ? tg.initData : '';
 
@@ -670,7 +674,6 @@
             }
         } catch (err) {
             triggerHaptic('error');
-            // Если сервер недоступен, скачиваем локально
             XLSX.writeFile(workbook, fileName);
         } finally {
             saveExcelButton.disabled = false;
