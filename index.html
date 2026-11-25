@@ -407,7 +407,12 @@
         }
 
         if (program === "GOLD") {
-            loginInput.value = firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase() + lastName.slice(1);
+            const firstInitial = firstName.charAt(0).toLocaleUpperCase("ru");
+            const formattedLastName =
+                lastName.charAt(0).toLocaleUpperCase("ru") +
+                lastName.slice(1).toLocaleLowerCase("ru");
+
+            loginInput.value = firstInitial + formattedLastName;
             return;
         }
 
@@ -466,7 +471,7 @@
             updatePassword();
         });
     });
-    
+
     magInput.addEventListener("input", function() {
         updateDescription();
     });
