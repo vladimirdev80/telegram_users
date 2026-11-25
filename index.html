@@ -407,10 +407,10 @@
         }
 
         if (program === "GOLD") {
-            const firstInitial = firstName.charAt(0).toLocaleUpperCase("ru");
+            const firstInitial = firstName.charAt(0).toUpperCase();
             const formattedLastName =
-                lastName.charAt(0).toLocaleUpperCase("ru") +
-                lastName.slice(1).toLocaleLowerCase("ru");
+                lastName.charAt(0).toUpperCase() +
+                lastName.slice(1).toLowerCase();
 
             loginInput.value = firstInitial + formattedLastName;
             return;
